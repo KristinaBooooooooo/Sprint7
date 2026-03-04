@@ -25,6 +25,13 @@ public class CreateCourierTest {
         }
     }
 
+    private void loginAndSetId(Courier courier) {
+        ValidatableResponse loginResponse = courierClient.login(Credentials.from(courier));
+        loginResponse.assertThat().statusCode(SC_OK);
+        courierId = loginResponse.extract().path("id");
+        assertNotNull(courierId);
+    }
+
     @Test
     public void courierCanBeCreated() {
         Courier courier = TestDataGenerator.getRandomCourier();
@@ -32,14 +39,9 @@ public class CreateCourierTest {
         ValidatableResponse createResponse = courierClient.create(courier);
         createResponse.assertThat()
                 .statusCode(SC_CREATED)
-                .and()
                 .body("ok", equalTo(true));
 
-        ValidatableResponse loginResponse =
-                courierClient.login(Credentials.from(courier));
-
-        courierId = loginResponse.extract().path("id");
-        assertNotNull(courierId);
+        loginAndSetId(courier);
     }
 
     @Test
@@ -47,16 +49,14 @@ public class CreateCourierTest {
         Courier courier = TestDataGenerator.getRandomCourier();
 
         ValidatableResponse firstResponse = courierClient.create(courier);
-        ValidatableResponse secondResponse = courierClient.create(courier);
-
         firstResponse.assertThat().statusCode(SC_CREATED);
+
+        ValidatableResponse secondResponse = courierClient.create(courier);
         secondResponse.assertThat()
                 .statusCode(SC_CONFLICT)
-                .and()
-                .body("message", notNullValue());
-        ValidatableResponse loginResponse = courierClient.login(Credentials.from(courier));
-        courierId = loginResponse.extract().path("id");
-        assertNotNull(courierId);
+                .body("message", equalTo("Этот логин уже используется. Попробуйте другой."));
+
+        loginAndSetId(courier);
     }
 
     @Test
@@ -67,8 +67,7 @@ public class CreateCourierTest {
 
         response.assertThat()
                 .statusCode(SC_BAD_REQUEST)
-                .and()
-                .body("message", notNullValue());
+                .body("message", equalTo("Недостаточно данных для создания учетной записи"));
     }
 
     @Test
@@ -79,7 +78,6 @@ public class CreateCourierTest {
 
         response.assertThat()
                 .statusCode(SC_BAD_REQUEST)
-                .and()
-                .body("message", notNullValue());
+                .body("message", equalTo("Недостаточно данных для создания учетной записи"));
     }
 }
